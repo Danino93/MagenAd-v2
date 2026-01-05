@@ -6,6 +6,7 @@ import DetectionSettings from '../components/DetectionSettings';
 import FraudAlertsPanel from '../components/FraudAlertsPanel';
 import AdvancedAnalytics from '../components/AdvancedAnalytics';
 import RealTimeMonitoring from '../components/RealTimeMonitoring';
+import IPManagement from '../components/IPManagement';
 
 function DashboardHebrew() {
   const [user, setUser] = useState(null);
@@ -220,6 +221,11 @@ function DashboardHebrew() {
         {/* Fraud Alerts */}
         <div className="mb-12">
           <FraudAlertsPanel accountId={connectedAccountId} />
+        </div>
+
+        {/* IP Management */}
+        <div className="mb-12">
+          <IPManagement accountId={connectedAccountId} />
         </div>
 
         {/* Next Steps */}
