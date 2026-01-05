@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LiveClicksFeed from '../components/LiveClicksFeed';
+import QuietIndexWidget from '../components/QuietIndexWidget';
 import DetectionSettings from '../components/DetectionSettings';
 import FraudAlertsPanel from '../components/FraudAlertsPanel';
+import AdvancedAnalytics from '../components/AdvancedAnalytics';
+import RealTimeMonitoring from '../components/RealTimeMonitoring';
 
 function DashboardHebrew() {
   const [user, setUser] = useState(null);
@@ -192,6 +195,21 @@ function DashboardHebrew() {
         {/* Live Clicks Feed */}
         <div className="mb-12">
           <LiveClicksFeed accountId={connectedAccountId} />
+        </div>
+
+        {/* Quiet Index Widget */}
+        <div className="mb-12">
+          <QuietIndexWidget accountId={connectedAccountId} />
+        </div>
+
+        {/* Advanced Analytics */}
+        <div className="mb-12">
+          <AdvancedAnalytics accountId={connectedAccountId} />
+        </div>
+
+        {/* Real-Time Monitoring */}
+        <div className="mb-12">
+          <RealTimeMonitoring accountId={connectedAccountId} />
         </div>
 
         {/* Detection Settings */}

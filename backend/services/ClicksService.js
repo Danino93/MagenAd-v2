@@ -1,5 +1,6 @@
 const { GoogleAdsApi } = require('google-ads-api');
 const supabase = require('../config/supabase');
+const ipEnrichmentService = require('./IPEnrichmentService');  // ← חדש!
 
 class ClicksService {
   constructor() {
@@ -84,10 +85,12 @@ class ClicksService {
       // Execute query
       const clicks = await customer.query(query);
 
-      // Process and enrich clicks
-      const processedClicks = clicks.map(click => this.processClick(click, customerId));
+      // Process and enrich clicks (async)
+      const processedClicks = await Promise.all(
+        clicks.map(click => this.processClick(click, customerId))
+      );
 
-      return processedClicks;
+      return processedClicks.filter(click => click !== null);
     } catch (error) {
       console.error('Error fetching clicks:', error);
       throw error;
@@ -96,55 +99,98 @@ class ClicksService {
 
   /**
    * Process and enrich a single click
+   * עכשיו כולל IP enrichment!
    */
-  processClick(click, customerId) {
-    const clickView = click.click_view || {};
-    const campaign = click.campaign || {};
-    const adGroup = click.ad_group || {};
-    const segments = click.segments || {};
-    const metrics = click.metrics || {};
+  async processClick(click, customerId) {
+    try {
+      const clickView = click.click_view || {};
+      const campaign = click.campaign || {};
+      const adGroup = click.ad_group || {};
+      const segments = click.segments || {};
+      const metrics = click.metrics || {};
 
-    // Extract location info
-    const location = clickView.area_of_interest || {};
-    
-    return {
-      // Identifiers
-      gclid: clickView.gclid,
-      customer_id: customerId,
-      campaign_id: campaign.id?.toString(),
-      campaign_name: campaign.name,
-      ad_group_id: adGroup.id?.toString(),
-      ad_group_name: adGroup.name,
+      // Extract location info
+      const location = clickView.area_of_interest || {};
       
-      // Location
-      city: location.city,
-      country: location.country,
-      region: location.region,
-      metro: location.metro,
-      
-      // Keyword
-      keyword: clickView.keyword_info?.text,
-      match_type: clickView.keyword_info?.match_type,
-      
-      // Device
-      device: segments.device,
-      
-      // Time
-      click_date: segments.date,
-      click_hour: segments.hour,
-      click_timestamp: this.buildTimestamp(segments.date, segments.hour),
-      
-      // Cost
-      cost_micros: metrics.cost_micros || 0,
-      cost: (metrics.cost_micros || 0) / 1000000,
-      
-      // Metadata
-      raw_data: click,
-    };
+      const processed = {
+        // Identifiers
+        gclid: clickView.gclid,
+        customer_id: customerId,
+        campaign_id: campaign.id?.toString(),
+        campaign_name: campaign.name,
+        ad_group_id: adGroup.id?.toString(),
+        ad_group_name: adGroup.name,
+        
+        // Location (from Google Ads)
+        city: location.city,
+        country: location.country,
+        country_code: location.country, // For consistency
+        region: location.region,
+        metro: location.metro,
+        
+        // Keyword
+        keyword: clickView.keyword_info?.text,
+        keyword_text: clickView.keyword_info?.text,
+        match_type: clickView.keyword_info?.match_type,
+        
+        // Device
+        device: segments.device,
+        device_type: segments.device,
+        
+        // Time
+        click_date: segments.date,
+        click_hour: segments.hour,
+        click_timestamp: this.buildTimestamp(segments.date, segments.hour),
+        event_timestamp: this.buildTimestamp(segments.date, segments.hour),
+        
+        // Cost
+        cost_micros: metrics.cost_micros || 0,
+        cost: (metrics.cost_micros || 0) / 1000000,
+        
+        // Metadata
+        raw_data: click,
+      };
+
+      // ← חדש! IP Enrichment (if IP address is available)
+      // Note: Google Ads API doesn't provide IP directly, but if we get it from another source
+      if (click.ip_address) {
+        try {
+          const enrichment = await ipEnrichmentService.enrichIP(click.ip_address);
+          
+          // Add enrichment data
+          processed.ip_address = enrichment.ip;
+          processed.isp = enrichment.isp;
+          processed.organization = enrichment.org;
+          processed.is_vpn = enrichment.isVPN;
+          processed.is_proxy = enrichment.isProxy;
+          processed.is_hosting = enrichment.isHosting;
+          processed.risk_score = enrichment.riskScore;
+          
+          // Override geographic data with enriched data (more accurate)
+          if (enrichment.countryCode && enrichment.countryCode !== 'XX') {
+            processed.country_code = enrichment.countryCode;
+            if (enrichment.city) processed.city = enrichment.city;
+            if (enrichment.region) processed.region = enrichment.region;
+          }
+        } catch (enrichError) {
+          console.error('IP enrichment failed:', enrichError);
+          // Continue without enrichment
+          if (click.ip_address) {
+            processed.ip_address = click.ip_address;
+          }
+        }
+      }
+
+      return processed;
+    } catch (error) {
+      console.error('Error processing click:', error);
+      return null;
+    }
   }
 
   /**
    * Save clicks to database
+   * עכשיו כולל enrichment data!
    */
   async saveClicks(accountId, clicks) {
     try {
@@ -157,9 +203,18 @@ class ClicksService {
         ad_group_name: click.ad_group_name || null,
         click_timestamp: click.click_timestamp || new Date().toISOString(),
         device: click.device || null,
-        network: click.network || null, // Will be set from segments if available
-        country_code: click.country || null,
+        network: click.network || null,
+        country_code: click.country_code || click.country || null,
         cost_micros: click.cost_micros || 0,
+        
+        // ← חדש! IP Enrichment fields
+        ip_address: click.ip_address || null,
+        isp: click.isp || null,
+        organization: click.organization || null,
+        is_vpn: click.is_vpn || false,
+        is_proxy: click.is_proxy || false,
+        is_hosting: click.is_hosting || false,
+        risk_score: click.risk_score || null,
       }));
 
       const { data, error } = await supabase
@@ -327,6 +382,64 @@ class ClicksService {
       }
     });
     return distribution;
+  }
+
+  /**
+   * Enrich existing clicks that don't have IP data
+   * רוץ פעם אחת אחרי העדכון
+   */
+  async enrichStoredClicks(accountId, limit = 100) {
+    try {
+      // Get clicks without enrichment
+      const { data: clicks, error } = await supabase
+        .from('raw_events')
+        .select('*')
+        .eq('ad_account_id', accountId)
+        .is('is_vpn', null)  // Not enriched yet
+        .not('ip_address', 'is', null)  // Has IP
+        .limit(limit);
+
+      if (error) throw error;
+
+      let enrichedCount = 0;
+
+      for (const click of clicks || []) {
+        try {
+          const enrichment = await ipEnrichmentService.enrichIP(click.ip_address);
+
+          // Update click with enrichment
+          const { error: updateError } = await supabase
+            .from('raw_events')
+            .update({
+              isp: enrichment.isp,
+              organization: enrichment.org,
+              is_vpn: enrichment.isVPN,
+              is_proxy: enrichment.isProxy,
+              is_hosting: enrichment.isHosting,
+              risk_score: enrichment.riskScore,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', click.id);
+
+          if (updateError) {
+            console.error(`Failed to update click ${click.id}:`, updateError);
+            continue;
+          }
+
+          enrichedCount++;
+        } catch (enrichError) {
+          console.error(`Failed to enrich click ${click.id}:`, enrichError);
+        }
+      }
+
+      return {
+        processed: clicks?.length || 0,
+        enriched: enrichedCount
+      };
+    } catch (error) {
+      console.error('Error enriching stored clicks:', error);
+      throw error;
+    }
   }
 }
 
