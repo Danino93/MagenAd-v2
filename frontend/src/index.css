@@ -4,6 +4,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Mobile Touch Optimization
+ * --------------------------
+ * כפתורים ידידותיים למובייל
+ */
+
+/* Minimum touch target size: 44x44px (Apple HIG) */
+button, a, input[type="checkbox"], input[type="radio"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Larger tap targets on mobile */
+@media (max-width: 768px) {
+  button, .btn {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+  
+  input, select, textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Disable double-tap zoom on buttons */
+button, a {
+  touch-action: manipulation;
+}
+
+/* Better scroll on mobile */
+body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe areas for notched devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
+
 :root {
   /* Dark-Mysterious Theme */
   --color-bg-primary: #0A0E27;

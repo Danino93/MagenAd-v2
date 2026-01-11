@@ -44,11 +44,9 @@ import {
   DollarSign
 } from 'lucide-react'
 import { notify } from '../utils/notifications'
-import axios from 'axios'
+import { reportsAPI } from '../services/api'
 import { Modal } from './Modal'
 import { LoadingSpinner } from './LoadingSpinner'
-
-const API_URL = 'http://localhost:3001/api'
 
 export function ReportsGenerator() {
   const [isOpen, setIsOpen] = useState(false)
@@ -109,19 +107,12 @@ export function ReportsGenerator() {
   const handleGenerateReport = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-
-      const response = await axios.post(
-        `${API_URL}/reports/generate`,
-        reportConfig,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: 'blob'
-        }
-      )
-
+      
+      // Use API service
+      const blob = await reportsAPI.generate(reportConfig)
+      
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       
@@ -131,11 +122,12 @@ export function ReportsGenerator() {
       document.body.appendChild(link)
       link.click()
       link.remove()
-
+      
       notify.success('הדוח הופק בהצלחה!')
       setIsOpen(false)
     } catch (error) {
-      notify.error('שגיאה בהפקת הדוח')
+      // Error already handled by interceptor
+      console.error('Report generation failed:', error)
     } finally {
       setLoading(false)
     }

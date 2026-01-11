@@ -51,9 +51,7 @@ import {
 } from 'lucide-react'
 import { notify } from '../utils/notifications'
 import { ConfirmModal } from './Modal'
-import axios from 'axios'
-
-const API_URL = 'http://localhost:3001/api'
+import { anomaliesAPI } from '../services/api'
 
 export function BulkOperations({ items, selectedItems, onSelectionChange, onActionComplete, type = 'anomalies' }) {
   const [showConfirm, setShowConfirm] = useState(false)
@@ -83,43 +81,31 @@ export function BulkOperations({ items, selectedItems, onSelectionChange, onActi
   const executeAction = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-
-      let endpoint = ''
-      let successMessage = ''
-
+      
+      let result
       switch (pendingAction) {
         case 'resolve':
-          endpoint = `${API_URL}/${type}/bulk-resolve`
-          successMessage = `${selectedItems.length} פריטים סומנו כפתורים`
+          result = await anomaliesAPI.bulkResolve(selectedItems)
           break
         case 'dismiss':
-          endpoint = `${API_URL}/${type}/bulk-dismiss`
-          successMessage = `${selectedItems.length} פריטים נדחו`
+          result = await anomaliesAPI.bulkDismiss(selectedItems)
           break
         case 'delete':
-          endpoint = `${API_URL}/${type}/bulk-delete`
-          successMessage = `${selectedItems.length} פריטים נמחקו`
+          result = await anomaliesAPI.bulkDelete(selectedItems)
           break
         case 'investigate':
-          endpoint = `${API_URL}/${type}/bulk-investigate`
-          successMessage = `${selectedItems.length} פריטים נשלחו לבדיקה`
+          result = await anomaliesAPI.bulkInvestigate(selectedItems)
           break
         default:
           throw new Error('פעולה לא ידועה')
       }
-
-      await axios.post(
-        endpoint,
-        { ids: selectedItems },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-
-      notify.success(successMessage)
+      
+      notify.success(result.message || 'הפעולה בוצעה בהצלחה')
       onSelectionChange([])
       onActionComplete()
     } catch (error) {
-      notify.error('שגיאה בביצוע הפעולה')
+      // Error already handled by interceptor
+      console.error('Bulk operation failed:', error)
     } finally {
       setLoading(false)
       setShowConfirm(false)

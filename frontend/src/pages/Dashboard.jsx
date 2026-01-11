@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Wifi, WifiOff } from 'lucide-react';
+import { useRealtimeStatus } from '../Hooks/useRealtime';
+import { useRealtimeDashboard } from '../Hooks/useRealtimeDashboard';
+import { NotificationsBell } from '../components/NotificationsBell';
+import { ActivityFeed } from '../components/ActivityFeed';
+import { MobileMenu } from '../components/MobileMenu';
 import LiveClicksFeed from '../components/LiveClicksFeed';
 import QuietIndexWidget from '../components/QuietIndexWidget';
 import DetectionSettings from '../components/DetectionSettings';
@@ -14,6 +20,16 @@ function DashboardHebrew() {
   const [loading, setLoading] = useState(true);
   const [connectedAccountId, setConnectedAccountId] = useState(null);
   const navigate = useNavigate();
+  
+  // Real-time features
+  const isRealtimeConnected = useRealtimeStatus();
+  const { 
+    stats, 
+    recentAnomalies, 
+    loading: dashboardLoading, 
+    lastUpdate,
+    refresh 
+  } = useRealtimeDashboard(user?.id);
 
   useEffect(() => {
     checkAuth();
@@ -107,6 +123,24 @@ function DashboardHebrew() {
 
             {/* User Menu */}
             <div className="flex items-center gap-4">
+              {/* Real-time status indicator */}
+              <div className="flex items-center gap-2 text-sm">
+                {isRealtimeConnected ? (
+                  <>
+                    <Wifi className="w-4 h-4 text-green-500" />
+                    <span className="text-green-400 hidden md:inline">מחובר</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-4 h-4 text-red-500" />
+                    <span className="text-red-400 hidden md:inline">לא מחובר</span>
+                  </>
+                )}
+              </div>
+              
+              {/* Notifications Bell */}
+              <NotificationsBell />
+              
               <div className="text-right hidden md:block">
                 <p className="text-sm font-bold text-white">{user?.full_name}</p>
                 <p className="text-xs text-[var(--color-text-tertiary)]">{user?.email}</p>
@@ -133,10 +167,20 @@ function DashboardHebrew() {
             <p className="text-2xl text-[var(--color-text-secondary)]">
               לוח הבקרה שלך בבנייה. חזרו בקרוב!
             </p>
+            {lastUpdate && (
+              <p className="text-sm text-[var(--color-text-tertiary)] mt-2">
+                עדכון אחרון: {lastUpdate.toLocaleTimeString('he-IL')}
+              </p>
+            )}
           </div>
           <div>
             <ReportsGenerator />
           </div>
+        </div>
+        
+        {/* Activity Feed */}
+        <div className="mb-12">
+          <ActivityFeed />
         </div>
 
         {/* Success Card */}

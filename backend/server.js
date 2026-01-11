@@ -2,9 +2,24 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env.local') });
 require('dotenv').config(); // Fallback to .env
 
+// Validate environment variables
+const { validateEnv } = require('./src/config/validateEnv');
+validateEnv();
+
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const supabase = require('./config/supabase');
+const { apiLimiter, authLimiter, reportLimiter } = require('./src/middleware/rateLimiter');
+
+// Cron Jobs
+console.log('🔄 Initializing cron jobs...');
+require('./jobs/ingest-clicks');
+require('./jobs/calculate-baseline');
+require('./jobs/run-detection');
+console.log('✅ All cron jobs initialized');
+
+// Routes
 const authRoutes = require('./routes/auth');
 const googleAdsRoutes = require('./routes/googleads');
 const clicksRoutes = require('./routes/clicks');
@@ -16,9 +31,83 @@ const anomaliesRoutes = require('./routes/anomalies');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security Headers (Helmet)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", process.env.SUPABASE_URL || "https://*.supabase.co"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"]
+    }
+  },
+  crossOriginEmbedderPolicy: true,
+  crossOriginOpenerPolicy: true,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  dnsPrefetchControl: true,
+  frameguard: { action: 'deny' },
+  hidePoweredBy: true,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  ieNoOpen: true,
+  noSniff: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  xssFilter: true
+}));
+
+// CORS Configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5174'
+    ].filter(Boolean);
+    
+    // Allow requests with no origin (mobile apps, Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+
+// Rate Limiting
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+app.use('/api/reports/', reportLimiter);
+
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Monitoring middleware (before routes)
+const monitoringMiddleware = require('./src/middleware/monitoring');
+const errorHandler = require('./src/middleware/errorHandler');
+const MonitoringService = require('./src/services/MonitoringService');
+
+app.use(monitoringMiddleware);
+
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/googleads', googleAdsRoutes);
 app.use('/api/clicks', clicksRoutes);
@@ -27,13 +116,12 @@ app.use('/api/qi', quietIndexRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/anomalies', anomaliesRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check endpoint (updated with MonitoringService)
+app.get('/api/health', async (req, res) => {
   try {
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString()
-    });
+    const health = await MonitoringService.healthCheck();
+    const statusCode = health.status === 'healthy' ? 200 : 503;
+    res.status(statusCode).json(health);
   } catch (error) {
     res.status(500).json({
       status: 'error',
@@ -41,6 +129,12 @@ app.get('/api/health', (req, res) => {
       error: error.message
     });
   }
+});
+
+// Metrics endpoint
+app.get('/api/metrics', (req, res) => {
+  const metrics = MonitoringService.getMetrics();
+  res.json(metrics);
 });
 
 // Debug endpoint - בדוק משתני סביבה (לא לפרודקשן!)
@@ -54,15 +148,8 @@ app.get('/api/debug/env', (req, res) => {
   });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    status: 'error',
-    message: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
-});
+// Error handling middleware (use new error handler)
+app.use(errorHandler);
 
 // Test Supabase Connection
 app.get('/api/test-db', async (req, res) => {
