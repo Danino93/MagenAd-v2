@@ -8,8 +8,10 @@ const supabase = require('./config/supabase');
 const authRoutes = require('./routes/auth');
 const googleAdsRoutes = require('./routes/googleads');
 const clicksRoutes = require('./routes/clicks');
-const detectionRoutes = require('./routes/detection');  // ← חדש!
-const quietIndexRoutes = require('./routes/quietindex');  // ← חדש!
+const detectionRoutes = require('./routes/detection');
+const quietIndexRoutes = require('./routes/quietindex');
+const reportsRoutes = require('./routes/reports');
+const anomaliesRoutes = require('./routes/anomalies');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,8 +22,10 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/googleads', googleAdsRoutes);
 app.use('/api/clicks', clicksRoutes);
-app.use('/api/detection', detectionRoutes);  // ← חדש!
-app.use('/api/qi', quietIndexRoutes);  // ← חדש!
+app.use('/api/detection', detectionRoutes);
+app.use('/api/qi', quietIndexRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/anomalies', anomaliesRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -99,7 +103,9 @@ app.listen(PORT, () => {
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🔥 Clicks API ready!`);
   console.log(`🚨 Detection Engine ready!`);
-  console.log('📊 Quiet Index ready!');  // ← הוסף את זה!
+  console.log(`📊 Quiet Index ready!`);
+  console.log(`📄 Reports API ready!`);
+  console.log(`🔍 Anomalies API ready!`);
 }).on('error', (err) => {
   console.error('Failed to start server:', err);
   process.exit(1);

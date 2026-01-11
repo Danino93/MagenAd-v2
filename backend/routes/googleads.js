@@ -1,3 +1,41 @@
+/*
+ * googleads.js (routes)
+ * 
+ * Routes לאינטגרציה עם Google Ads - MagenAd V2
+ * 
+ * תפקיד:
+ * - חיבור חשבונות Google Ads
+ * - OAuth flow עם Google Ads
+ * - רשימת חשבונות מחוברים
+ * - רשימת קמפיינים
+ * - בדיקת חיבור
+ * - ניתוק חשבון
+ * 
+ * Endpoints:
+ * - GET /api/googleads/auth - קבלת OAuth URL לחיבור Google Ads
+ * - GET /api/googleads/callback - Callback מ-Google Ads OAuth
+ * - GET /api/googleads/accounts - רשימת חשבונות מחוברים
+ * - GET /api/googleads/campaigns/:accountId - רשימת קמפיינים
+ * - POST /api/googleads/test-connection/:accountId - בדיקת חיבור
+ * - DELETE /api/googleads/accounts/:accountId - ניתוק חשבון
+ * 
+ * OAuth Flow:
+ * 1. GET /api/googleads/auth → OAuth URL
+ * 2. משתמש מאשר ב-Google
+ * 3. Google redirect ל-/api/googleads/callback?code=...
+ * 4. Backend מחליף code ב-tokens
+ * 5. Backend שומר refresh_token ב-DB
+ * 6. Backend מחזיר רשימת חשבונות נגישים
+ * 
+ * Database:
+ * - Table: ad_accounts
+ * - Fields: user_id, google_customer_id, account_name, refresh_token, 
+ *           currency, is_active, connected_at
+ * 
+ * Authentication:
+ * - כל ה-endpoints דורשים JWT token (חוץ מ-callback)
+ * - Middleware: authenticateToken
+ */
 const express = require('express');
 const router = express.Router();
 const googleAdsService = require('../services/GoogleAdsService');

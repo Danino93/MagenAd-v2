@@ -1,3 +1,41 @@
+/*
+ * GoogleAdsService.js
+ * 
+ * שירות לאינטגרציה עם Google Ads API - MagenAd V2
+ * 
+ * תפקיד:
+ * - ניהול OAuth flow עם Google Ads
+ * - יצירת auth URLs
+ * - החלפת authorization code ב-tokens
+ * - Refresh tokens
+ * - רשימת חשבונות נגישים
+ * - ניהול access tokens
+ * 
+ * פונקציות עיקריות:
+ * - getAuthUrl(): יצירת URL לאימות Google Ads
+ * - getTokensFromCode(): החלפת code ב-tokens
+ * - getAccessToken(): קבלת access token (עם refresh אם צריך)
+ * - listAccessibleCustomers(): רשימת חשבונות Google Ads נגישים
+ * 
+ * OAuth Flow:
+ * 1. משתמש לוחץ "חבר Google Ads"
+ * 2. getAuthUrl() → redirect ל-Google
+ * 3. משתמש מאשר ב-Google
+ * 4. Google redirect עם code
+ * 5. getTokensFromCode() → access_token + refresh_token
+ * 6. listAccessibleCustomers() → רשימת חשבונות
+ * 7. שמירת refresh_token ב-DB
+ * 
+ * Environment Variables:
+ * - GOOGLE_ADS_CLIENT_ID: Google Ads OAuth Client ID
+ * - GOOGLE_ADS_CLIENT_SECRET: Google Ads OAuth Client Secret
+ * - GOOGLE_ADS_REDIRECT_URI: Redirect URI
+ * - GOOGLE_ADS_DEVELOPER_TOKEN: Google Ads Developer Token
+ * 
+ * Fallback:
+ * - אם GOOGLE_ADS_CLIENT_ID לא קיים → משתמש ב-GOOGLE_CLIENT_ID
+ * - אם GOOGLE_ADS_DEVELOPER_TOKEN הוא placeholder → משתמש ב-test-token
+ */
 const { GoogleAdsApi } = require('google-ads-api');
 
 class GoogleAdsService {

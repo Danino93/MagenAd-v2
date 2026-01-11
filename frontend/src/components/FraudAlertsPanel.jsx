@@ -1,18 +1,49 @@
 /*
  * FraudAlertsPanel.jsx
  * 
- * פאנל התראות הונאה עם:
- * - 4 סטטיסטיקות עיקריות
- * - רשימת התראות עם severity
- * - אפשרות לסנן ולמחוק
+ * פאנל התראות הונאה - MagenAd V2
+ * 
+ * תפקיד:
+ * - הצגת 4 סטטיסטיקות עיקריות (שיעור הונאה, זיהויים, עלות, % מתקציב)
+ * - רשימת התראות עם חומרה (high/medium/low)
+ * - סינון מתקדם (AdvancedFilters)
+ * - פעולות מרוכזות (BulkOperations)
+ * - תמיכה במצב ללא חשבון מחובר (placeholder)
+ * 
+ * Props:
+ * - accountId: ID של חשבון Google Ads (UUID)
+ * 
+ * State:
+ * - alerts: מערך התראות
+ * - stats: סטטיסטיקות
+ * - loading: האם בטעינה
+ * - filter: פילטר חומרה (all/high/medium/low)
+ * - selectedItems: IDs של התראות שנבחרו
+ * - filters: אובייקט פילטרים מתקדמים
+ * 
+ * API:
+ * - GET /api/detection/:accountId/alerts
+ * - GET /api/detection/:accountId/stats
+ * - POST /api/anomalies/bulk-resolve
+ * - POST /api/anomalies/bulk-dismiss
+ * - POST /api/anomalies/bulk-delete
+ * - POST /api/anomalies/bulk-investigate
+ * 
+ * קומפוננטות משולבות:
+ * - AdvancedFilters: סינון מתקדם
+ * - BulkOperations: פעולות מרוכזות
  */
 import { useState, useEffect } from 'react';
+import AdvancedFilters from './AdvancedFilters';
+import BulkOperations from './BulkOperations';
 
 function FraudAlertsPanel({ accountId }) {
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [advancedFilters, setAdvancedFilters] = useState(null);
 
   useEffect(() => {
     if (!accountId) {
@@ -21,25 +52,67 @@ function FraudAlertsPanel({ accountId }) {
     }
     loadAlerts();
     loadStats();
-  }, [accountId, filter]);
+  }, [accountId, filter, advancedFilters]);
 
   const loadAlerts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const severityParam = filter !== 'all' ? `&severity=${filter}` : '';
+      let url = `http://localhost:3001/api/detection/${accountId}/alerts?days=7&limit=50`;
       
-      const response = await fetch(
-        `http://localhost:3001/api/detection/${accountId}/alerts?days=7&limit=20${severityParam}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // Add severity filter
+      if (filter !== 'all') {
+        url += `&severity=${filter}`;
+      }
+      
+      // Add advanced filters if exists
+      if (advancedFilters) {
+        if (advancedFilters.severity !== 'all') {
+          url += `&severity=${advancedFilters.severity}`;
+        }
+        if (advancedFilters.dateRange) {
+          const days = advancedFilters.dateRange === '7days' ? 7 : 
+                       advancedFilters.dateRange === '30days' ? 30 : 7;
+          url = url.replace(/days=\d+/, `days=${days}`);
+        }
+      }
+      
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       const data = await response.json();
-      setAlerts(data.alerts || []);
+      let filteredAlerts = data.alerts || [];
+      
+      // Apply text search if exists
+      if (advancedFilters?.search) {
+        const searchTerm = advancedFilters.search.toLowerCase();
+        filteredAlerts = filteredAlerts.filter(alert => 
+          alert.detection_message?.toLowerCase().includes(searchTerm) ||
+          alert.detection_rule?.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      setAlerts(filteredAlerts);
       setLoading(false);
     } catch (error) {
       console.error('Error:', error);
       setLoading(false);
     }
+  };
+  
+  const handleFilterChange = (filters) => {
+    setAdvancedFilters(filters);
+  };
+  
+  const handleFilterReset = () => {
+    setAdvancedFilters(null);
+    setFilter('all');
+  };
+  
+  const handleActionComplete = () => {
+    setSelectedItems([]);
+    loadAlerts();
+    loadStats();
   };
 
   const loadStats = async () => {
@@ -115,6 +188,23 @@ function FraudAlertsPanel({ accountId }) {
 
   return (
     <div className="space-y-6">
+      {/* Advanced Filters */}
+      <AdvancedFilters 
+        onFilterChange={handleFilterChange}
+        onReset={handleFilterReset}
+      />
+
+      {/* Bulk Operations */}
+      {alerts.length > 0 && (
+        <BulkOperations
+          items={alerts}
+          selectedItems={selectedItems}
+          onSelectionChange={setSelectedItems}
+          onActionComplete={handleActionComplete}
+          type="anomalies"
+        />
+      )}
+
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-4 gap-6">
@@ -152,9 +242,35 @@ function FraudAlertsPanel({ accountId }) {
           ) : (
             alerts.map((alert) => {
               const badge = getSeverityBadge(alert.severity_level);
+              const isSelected = selectedItems.includes(alert.id);
               return (
-                <div key={alert.id} className="p-6 border-b border-white/5">
+                <div 
+                  key={alert.id} 
+                  className={`p-6 border-b border-white/5 cursor-pointer transition-all ${
+                    isSelected ? 'bg-[var(--color-cyan)]/20 border-[var(--color-cyan)]/30' : 'hover:bg-white/5'
+                  }`}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedItems(selectedItems.filter(id => id !== alert.id));
+                    } else {
+                      setSelectedItems([...selectedItems, alert.id]);
+                    }
+                  }}
+                >
                   <div className="flex items-start gap-4">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        if (e.target.checked) {
+                          setSelectedItems([...selectedItems, alert.id]);
+                        } else {
+                          setSelectedItems(selectedItems.filter(id => id !== alert.id));
+                        }
+                      }}
+                      className="w-5 h-5 mt-1 rounded border-white/20 bg-white/10 text-[var(--color-cyan)] focus:ring-[var(--color-cyan)]"
+                    />
                     <div className="text-3xl">{badge.emoji}</div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">

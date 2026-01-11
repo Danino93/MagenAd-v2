@@ -1,0 +1,102 @@
+# Prometheus Configuration
+# MagenAd Monitoring Setup
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'magenad-production'
+    environment: 'production'
+
+# AlertManager Configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load alerting rules
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+# Scrape Configurations
+scrape_configs:
+  # ============================================
+  # Prometheus itself
+  # ============================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ============================================
+  # Node Exporter - System Metrics
+  # ============================================
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'main-server'
+
+  # ============================================
+  # cAdvisor - Container Metrics
+  # ============================================
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # ============================================
+  # Backend Application
+  # ============================================
+  - job_name: 'backend'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['backend:3001']
+        labels:
+          service: 'backend'
+          env: 'production'
+
+  # ============================================
+  # PostgreSQL Exporter
+  # ============================================
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgres'
+
+  # ============================================
+  # Redis Exporter
+  # ============================================
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+
+  # ============================================
+  # Nginx (if using)
+  # ============================================
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:9113']
+        labels:
+          service: 'nginx'
+
+  # ============================================
+  # Blackbox Exporter - Endpoint Monitoring
+  # ============================================
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://backend:3001/api/health
+          - http://frontend:80/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

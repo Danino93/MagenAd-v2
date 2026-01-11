@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 
 // Pages
 import LandingPageHebrew from './pages/LandingPage';
@@ -37,5 +38,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
+    <Toaster position="top-center" />
   </React.StrictMode>
 );

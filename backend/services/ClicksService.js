@@ -1,6 +1,41 @@
+/*
+ * ClicksService.js
+ * 
+ * שירות לניהול Clicks מ-Google Ads - MagenAd V2
+ * 
+ * תפקיד:
+ * - משיכת clicks מ-Google Ads API
+ * - עיבוד ואחסון clicks ב-Supabase
+ * - העשרת IP addresses (GeoIP, ISP, VPN/Proxy detection)
+ * - חישוב סטטיסטיקות clicks
+ * - סינכרון clicks עם Google Ads
+ * 
+ * פונקציות עיקריות:
+ * - getClicks(): משיכת clicks מ-Google Ads API
+ * - processClick(): עיבוד click בודד (עם IP enrichment)
+ * - saveClicks(): שמירת clicks ב-Supabase
+ * - enrichStoredClicks(): העשרת clicks קיימים ב-IP data
+ * - getClicksFromDB(): קבלת clicks מה-DB
+ * - getClickStats(): חישוב סטטיסטיקות
+ * - getHourlyDistribution(): התפלגות לפי שעות
+ * 
+ * IP Enrichment:
+ * - שימוש ב-IPEnrichmentService להעשרת IP addresses
+ * - נתונים: GeoIP (country, city, region), ISP, VPN/Proxy/Hosting detection
+ * - Risk scoring לכל IP
+ * 
+ * Database:
+ * - Table: raw_events
+ * - Fields: gclid, campaign_id, click_timestamp, device, network, country_code, 
+ *           cost_micros, ip_address, isp, is_vpn, is_proxy, is_hosting, risk_score
+ * 
+ * API:
+ * - Google Ads API: Click Performance Report
+ * - Rate limiting: 40 requests/minute
+ */
 const { GoogleAdsApi } = require('google-ads-api');
 const supabase = require('../config/supabase');
-const ipEnrichmentService = require('./IPEnrichmentService');  // ← חדש!
+const ipEnrichmentService = require('./IPEnrichmentService');
 
 class ClicksService {
   constructor() {

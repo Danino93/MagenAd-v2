@@ -1,13 +1,36 @@
 /*
- * MonitoringService.js - ניטור ותיעוד
+ * MonitoringService.js
  * 
- * מערכת ניטור ותיעוד מתקדמת:
- * - System Health Monitoring
- * - Error Tracking
- * - Performance Metrics
- * - User Activity Logging
- * - Alerts & Notifications
+ * שירות ניטור ותיעוד - MagenAd V2
+ * 
+ * תפקיד:
+ * - ניטור בריאות המערכת (System Health)
+ * - מעקב שגיאות (Error Tracking)
+ * - מדדי ביצועים (Performance Metrics)
+ * - רישום פעילות משתמשים (User Activity Logging)
+ * - התראות והתרעות (Alerts & Notifications)
  * - Analytics Dashboard
+ * 
+ * פונקציות עיקריות:
+ * - getMonitoringData(): נתוני ניטור מלאים
+ * - getThreats(): איומים פעילים
+ * - getLiveStats(): סטטיסטיקות בזמן אמת
+ * - getTimeline(): ציר זמן של איומים
+ * - detectAttack(): זיהוי התקפות
+ * - logActivity(): רישום פעילות
+ * - trackError(): מעקב שגיאות
+ * 
+ * Metrics:
+ * - requests: מספר בקשות
+ * - errors: מספר שגיאות
+ * - responseTime: זמן תגובה ממוצע
+ * - activeUsers: משתמשים פעילים
+ * - systemHealth: בריאות המערכת
+ * 
+ * Database:
+ * - Table: monitoring_logs
+ * - Table: error_logs
+ * - Table: activity_logs
  */
 
 const supabase = require('../config/supabase');

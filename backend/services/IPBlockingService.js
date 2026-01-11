@@ -1,13 +1,39 @@
 /*
  * IPBlockingService.js
  * 
- * IP Blocking & Whitelist Management:
- * - Blacklist management (manual + auto)
- * - Whitelist management
- * - Auto-blocking rules
- * - IP range blocking (CIDR)
- * - Block expiration
- * - Block statistics
+ * שירות לניהול חסימת IP ו-Whitelist - MagenAd V2
+ * 
+ * תפקיד:
+ * - ניהול רשימה שחורה (blacklist) - ידני ואוטומטי
+ * - ניהול רשימה לבנה (whitelist)
+ * - כללי חסימה אוטומטית
+ * - חסימת טווחי IP (CIDR)
+ * - תאריך תפוגה לחסימות
+ * - סטטיסטיקות חסימה
+ * 
+ * פונקציות עיקריות:
+ * - blockIP(): הוספת IP לרשימה שחורה
+ * - unblockIP(): הסרת IP מרשימה שחורה
+ * - whitelistIP(): הוספת IP לרשימה לבנה
+ * - removeFromWhitelist(): הסרת IP מרשימה לבנה
+ * - isBlocked(): בדיקה אם IP חסום
+ * - isWhitelisted(): בדיקה אם IP ברשימה לבנה
+ * - getBlacklist(): קבלת רשימה שחורה
+ * - getWhitelist(): קבלת רשימה לבנה
+ * - getStats(): סטטיסטיקות חסימה
+ * - bulkBlock(): חסימה מרוכזת
+ * 
+ * Database:
+ * - Table: ip_blocks
+ * - Fields: account_id, ip_address, block_type, reason, source, 
+ *           blocked_at, expires_at, is_active
+ * - Table: ip_whitelist
+ * - Fields: account_id, ip_address, reason, added_at
+ * 
+ * Auto-blocking:
+ * - חסימה אוטומטית לפי כללי Detection Engine
+ * - חסימה אוטומטית לפי risk score גבוה
+ * - חסימה אוטומטית לפי VPN/Proxy detection
  */
 
 const supabase = require('../config/supabase');

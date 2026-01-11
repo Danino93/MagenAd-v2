@@ -7,6 +7,7 @@ import FraudAlertsPanel from '../components/FraudAlertsPanel';
 import AdvancedAnalytics from '../components/AdvancedAnalytics';
 import RealTimeMonitoring from '../components/RealTimeMonitoring';
 import IPManagement from '../components/IPManagement';
+import ReportsGenerator from '../components/ReportsGenerator';
 
 function DashboardHebrew() {
   const [user, setUser] = useState(null);
@@ -124,13 +125,18 @@ function DashboardHebrew() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-12">
         {/* Welcome Section */}
-        <div className="mb-12">
-          <h1 className="text-6xl font-bold text-white mb-4">
-            שלום, <span className="gradient-text">{firstName}</span>! 👋
-          </h1>
-          <p className="text-2xl text-[var(--color-text-secondary)]">
-            לוח הבקרה שלך בבנייה. חזרו בקרוב!
-          </p>
+        <div className="mb-12 flex items-center justify-between">
+          <div>
+            <h1 className="text-6xl font-bold text-white mb-4">
+              שלום, <span className="gradient-text">{firstName}</span>! 👋
+            </h1>
+            <p className="text-2xl text-[var(--color-text-secondary)]">
+              לוח הבקרה שלך בבנייה. חזרו בקרוב!
+            </p>
+          </div>
+          <div>
+            <ReportsGenerator />
+          </div>
         </div>
 
         {/* Success Card */}

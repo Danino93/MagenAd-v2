@@ -1,0 +1,249 @@
+# Prometheus Alert Rules
+# MagenAd Alerting Configuration
+
+groups:
+  # ============================================
+  # System Alerts
+  # ============================================
+  - name: system_alerts
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "High CPU usage detected on {{ $labels.instance }}"
+          description: "CPU usage is above 80% (current value: {{ $value }}%)"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current value: {{ $value }}%)"
+
+      - alert: DiskSpaceRunningOut
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+          category: system
+        annotations:
+          summary: "Disk space running out on {{ $labels.instance }}"
+          description: "Available disk space is below 15% (current: {{ $value }}%)"
+
+  # ============================================
+  # Application Alerts
+  # ============================================
+  - name: application_alerts
+    interval: 30s
+    rules:
+      - alert: ApplicationDown
+        expr: up{job="backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: application
+        annotations:
+          summary: "Application {{ $labels.job }} is down"
+          description: "The backend application has been down for more than 2 minutes"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% (current: {{ $value | humanizePercentage }})"
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Slow response times detected"
+          description: "95th percentile response time is above 2 seconds (current: {{ $value }}s)"
+
+      - alert: HighRequestRate
+        expr: rate(http_requests_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "High request rate detected"
+          description: "Request rate is above 1000 req/s (current: {{ $value }} req/s)"
+
+  # ============================================
+  # Database Alerts
+  # ============================================
+  - name: database_alerts
+    interval: 30s
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is not responding"
+
+      - alert: TooManyConnections
+        expr: sum(pg_stat_activity_count) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Too many database connections"
+          description: "Database has {{ $value }} active connections (limit: 100)"
+
+      - alert: SlowQueries
+        expr: rate(pg_stat_statements_mean_exec_time[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time is above 1 second"
+
+      - alert: DatabaseReplicationLag
+        expr: pg_replication_lag > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Database replication lag detected"
+          description: "Replication lag is {{ $value }} seconds behind"
+
+  # ============================================
+  # Redis Alerts
+  # ============================================
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache is not responding"
+
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: cache
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis is using {{ $value | humanizePercentage }} of max memory"
+
+      - alert: RedisSlowCommands
+        expr: redis_commands_duration_seconds_total > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: cache
+        annotations:
+          summary: "Redis slow commands detected"
+          description: "Redis command execution time is high"
+
+  # ============================================
+  # Container Alerts
+  # ============================================
+  - name: container_alerts
+    interval: 30s
+    rules:
+      - alert: ContainerKilled
+        expr: time() - container_last_seen{name=~"magenad-.*"} > 60
+        for: 1m
+        labels:
+          severity: critical
+          category: container
+        annotations:
+          summary: "Container {{ $labels.name }} killed"
+          description: "Container has been killed and is not running"
+
+      - alert: ContainerCPUUsageHigh
+        expr: (sum(rate(container_cpu_usage_seconds_total{name=~"magenad-.*"}[5m])) by (name) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: container
+        annotations:
+          summary: "High CPU usage in container {{ $labels.name }}"
+          description: "Container CPU usage is above 80% (current: {{ $value }}%)"
+
+      - alert: ContainerMemoryUsageHigh
+        expr: (sum(container_memory_usage_bytes{name=~"magenad-.*"}) by (name) / sum(container_spec_memory_limit_bytes{name=~"magenad-.*"}) by (name) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: container
+        annotations:
+          summary: "High memory usage in container {{ $labels.name }}"
+          description: "Container memory usage is above 85% (current: {{ $value }}%)"
+
+  # ============================================
+  # Business Logic Alerts
+  # ============================================
+  - name: business_alerts
+    interval: 1m
+    rules:
+      - alert: AnomalyDetectionServiceDown
+        expr: up{job="anomaly-detection"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: business
+        annotations:
+          summary: "Anomaly detection service is down"
+          description: "The core anomaly detection service is not responding"
+
+      - alert: HighAnomalyRate
+        expr: rate(anomalies_detected_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "High anomaly detection rate"
+          description: "Detecting {{ $value }} anomalies per second"
+
+      - alert: DataIngestionFailure
+        expr: rate(data_ingestion_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "Data ingestion failures detected"
+          description: "Failing to ingest data from Google Ads API"
+
+      - alert: MLModelPredictionFailing
+        expr: ml_model_prediction_errors_total > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "ML model prediction errors"
+          description: "Machine learning model is failing to make predictions"

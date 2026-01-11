@@ -1,3 +1,36 @@
+/*
+ * auth.js (routes)
+ * 
+ * Routes לאימות משתמשים - MagenAd V2
+ * 
+ * תפקיד:
+ * - אימות משתמשים דרך Google OAuth 2.0
+ * - יצירת JWT tokens
+ * - ניהול סשן משתמש
+ * - קבלת פרטי משתמש מאומת
+ * 
+ * Endpoints:
+ * - GET /api/auth/google - התחלת OAuth flow (redirect ל-Google)
+ * - GET /api/auth/google/callback - Callback מ-Google OAuth
+ * - GET /api/auth/me - קבלת פרטי משתמש מאומת
+ * - POST /api/auth/logout - התנתקות
+ * 
+ * OAuth Flow:
+ * 1. משתמש לוחץ "התחבר עם Google"
+ * 2. GET /api/auth/google → redirect ל-Google
+ * 3. משתמש מאשר ב-Google
+ * 4. Google redirect ל-/api/auth/google/callback?code=...
+ * 5. Backend מחליף code ב-access token
+ * 6. Backend יוצר משתמש ב-Supabase (אם לא קיים)
+ * 7. Backend יוצר JWT token
+ * 8. Redirect ל-frontend עם token
+ * 
+ * Environment Variables:
+ * - GOOGLE_CLIENT_ID: Google OAuth Client ID
+ * - GOOGLE_CLIENT_SECRET: Google OAuth Client Secret
+ * - GOOGLE_REDIRECT_URI: Redirect URI (http://localhost:3001/api/auth/google/callback)
+ * - JWT_SECRET: Secret ליצירת JWT tokens
+ */
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 require('dotenv').config(); // Fallback to .env
@@ -138,7 +171,7 @@ router.get('/google/callback', async (req, res) => {
     // Create JWT token
     const jwtToken = jwt.sign(
       { 
-        userId: user.id,
+        userId: user.id, 
         id: user.id, // Add both for compatibility
         email: userInfo.email 
       },

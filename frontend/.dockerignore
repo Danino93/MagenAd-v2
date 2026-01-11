@@ -1,0 +1,132 @@
+# .dockerignore
+# Files and directories to exclude from Docker build context
+# קבצים וספריות שלא להעתיק ל-Docker
+
+# ============================================
+# Node.js
+# ============================================
+node_modules
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ============================================
+# Environment Files
+# ============================================
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+
+# ============================================
+# Git
+# ============================================
+.git
+.gitignore
+.gitattributes
+.github
+
+# ============================================
+# IDE & Editors
+# ============================================
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Logs
+# ============================================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# ============================================
+# Testing
+# ============================================
+coverage
+.nyc_output
+*.test.js
+*.spec.js
+*.test.ts
+*.spec.ts
+__tests__
+__mocks__
+test
+tests
+
+# ============================================
+# Build Output
+# ============================================
+dist
+build
+.next
+out
+*.tsbuildinfo
+
+# ============================================
+# Documentation
+# ============================================
+README.md
+CHANGELOG.md
+LICENSE
+docs
+*.md
+!README.md
+
+# ============================================
+# Docker Files
+# ============================================
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# ============================================
+# CI/CD
+# ============================================
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
+Jenkinsfile
+
+# ============================================
+# Temporary Files
+# ============================================
+tmp
+temp
+.cache
+.parcel-cache
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+# Database
+# ============================================
+*.sqlite
+*.db
+*.db-journal
+
+# ============================================
+# Misc
+# ============================================
+.eslintcache
+.npm
+.yarn

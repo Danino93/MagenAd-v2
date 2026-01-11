@@ -11,6 +11,7 @@
 const express = require('express');
 const router = express.Router();
 const reportService = require('../services/ReportService');
+const reportController = require('../controllers/reportController');
 const supabase = require('../config/supabase');
 const jwt = require('jsonwebtoken');
 
@@ -151,5 +152,11 @@ router.get('/:accountId/export', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to export data' });
   }
 });
+
+/**
+ * Generate Report (New Controller)
+ * POST /api/reports/generate
+ */
+router.post('/generate', authenticateToken, reportController.generate);
 
 module.exports = router;

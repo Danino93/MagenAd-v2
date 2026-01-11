@@ -1,13 +1,35 @@
 /*
  * ReportService.js
  * 
- * Report Generation & Export:
- * - PDF report generation
- * - Weekly/Monthly summaries
+ * שירות ליצירת דוחות וייצוא - MagenAd V2
+ * 
+ * תפקיד:
+ * - יצירת דוחות PDF
+ * - סיכומים שבועיים/חודשיים
  * - Executive dashboards
- * - CSV/JSON export
- * - Custom report builder
- * - Report scheduling
+ * - ייצוא CSV/JSON
+ * - בונה דוחות מותאם אישית
+ * - תזמון דוחות
+ * 
+ * פונקציות עיקריות:
+ * - generateReport(): יצירת דוח מלא
+ * - exportToCSV(): ייצוא ל-CSV
+ * - exportToJSON(): ייצוא ל-JSON
+ * - generatePDF(): יצירת PDF
+ * - scheduleReport(): תזמון דוח
+ * - getReportHistory(): היסטוריית דוחות
+ * 
+ * סוגי דוחות:
+ * - Summary: סיכום כללי
+ * - Anomalies: דוח אנומליות
+ * - Financial: דוח פיננסי
+ * - Campaigns: דוח קמפיינים
+ * - Custom: דוח מותאם אישית
+ * 
+ * Database:
+ * - Table: reports
+ * - Fields: account_id, report_type, format, generated_at, 
+ *           file_path, status, parameters
  */
 
 const supabase = require('../config/supabase');

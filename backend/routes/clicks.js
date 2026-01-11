@@ -1,3 +1,37 @@
+/*
+ * clicks.js (routes)
+ * 
+ * Routes לניהול Clicks - MagenAd V2
+ * 
+ * תפקיד:
+ * - ניהול clicks מ-Google Ads
+ * - קבלת clicks מה-DB
+ * - סינכרון clicks מ-Google Ads API
+ * - סטטיסטיקות clicks
+ * - רשימת clicks לפי קמפיין
+ * 
+ * Endpoints:
+ * - GET /api/clicks/:accountId - קבלת clicks מה-DB
+ * - POST /api/clicks/:accountId/sync - סינכרון clicks מ-Google Ads
+ * - GET /api/clicks/:accountId/stats - סטטיסטיקות clicks
+ * - GET /api/clicks/:accountId/recent - clicks אחרונים
+ * - GET /api/clicks/:accountId/campaigns - clicks לפי קמפיין
+ * 
+ * Query Parameters:
+ * - days: מספר ימים אחורה (default: 7)
+ * - campaignId: ID של קמפיין ספציפי (optional)
+ * - limit: מספר תוצאות (default: 100)
+ * - offset: offset ל-pagination (default: 0)
+ * 
+ * Authentication:
+ * - כל ה-endpoints דורשים JWT token
+ * - Middleware: authenticateToken
+ * 
+ * Database:
+ * - Table: raw_events
+ * - Fields: gclid, campaign_id, click_timestamp, device, network, 
+ *           country_code, cost_micros, ip_address, isp, is_vpn, risk_score
+ */
 const express = require('express');
 const router = express.Router();
 const clicksService = require('../services/ClicksService');
