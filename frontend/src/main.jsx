@@ -12,6 +12,7 @@ import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import ConnectAdsPage from './pages/ConnectAdsPage';
 import CampaignsPage from './pages/CampaignsPage';
+import OnboardingPage from './pages/OnboardingPage';
 
 // Styles
 import './index.css'
@@ -31,6 +32,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             
             {/* App Routes */}
             <Route path="/app/dashboard" element={<Dashboard />} />
+            <Route path="/app/onboarding" element={<OnboardingPage />} />
             <Route path="/app/connect-ads" element={<ConnectAdsPage />} />
             <Route path="/app/campaigns/:accountId" element={<CampaignsPage />} />
             

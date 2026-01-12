@@ -6,6 +6,9 @@ import { useRealtimeDashboard } from '../Hooks/useRealtimeDashboard';
 import { NotificationsBell } from '../components/NotificationsBell';
 import { ActivityFeed } from '../components/ActivityFeed';
 import { MobileMenu } from '../components/MobileMenu';
+import DashboardStats from '../components/DashboardStats';
+import QuickActions from '../components/QuickActions';
+import OnboardingPage from './OnboardingPage';
 import LiveClicksFeed from '../components/LiveClicksFeed';
 import QuietIndexWidget from '../components/QuietIndexWidget';
 import DetectionSettings from '../components/DetectionSettings';
@@ -83,9 +86,16 @@ function DashboardHebrew() {
       const data = await response.json();
       if (data.accounts && data.accounts.length > 0) {
         setConnectedAccountId(data.accounts[0].id);
+        // If we just connected, refresh the page to show full dashboard
+        if (window.location.pathname === '/app/dashboard') {
+          // Already on dashboard, just update state
+        }
+      } else {
+        setConnectedAccountId(null);
       }
     } catch (error) {
       console.error('Error loading account:', error);
+      setConnectedAccountId(null);
     }
   };
 
@@ -101,6 +111,19 @@ function DashboardHebrew() {
   }
 
   const firstName = user?.full_name?.split(' ')[0] || 'משתמש';
+
+  // Show onboarding if no account connected
+  if (!connectedAccountId && !loading) {
+    return (
+      <OnboardingPage 
+        user={user} 
+        onComplete={() => {
+          // Reload account after onboarding
+          loadConnectedAccount();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)]" dir="rtl">
@@ -165,7 +188,7 @@ function DashboardHebrew() {
               שלום, <span className="gradient-text">{firstName}</span>! 👋
             </h1>
             <p className="text-2xl text-[var(--color-text-secondary)]">
-              לוח הבקרה שלך בבנייה. חזרו בקרוב!
+              ברוכים הבאים ללוח הבקרה שלכם! 🚀
             </p>
             {lastUpdate && (
               <p className="text-sm text-[var(--color-text-tertiary)] mt-2">
@@ -178,43 +201,81 @@ function DashboardHebrew() {
           </div>
         </div>
         
+        {/* Dashboard Stats */}
+        <div className="mb-12">
+          <DashboardStats userId={user?.id} />
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-12">
+          <QuickActions accountId={connectedAccountId} />
+        </div>
+
         {/* Activity Feed */}
         <div className="mb-12">
           <ActivityFeed />
         </div>
 
-        {/* Success Card */}
-        <div className="glass-strong border-2 border-[var(--color-success)]/30 rounded-3xl p-10 mb-8 glow-cyan">
-          <div className="flex items-start gap-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-[var(--color-success)] to-[var(--color-cyan)] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-3xl font-bold text-white mb-3">🎉 אימות הושלם בהצלחה!</h3>
-              <p className="text-lg text-[var(--color-text-secondary)] mb-6">
-                החשבון שלכם מוכן ומחכה. הנה מה שהשלמנו:
-              </p>
-              <ul className="space-y-3 text-[var(--color-text-secondary)]">
-                {[
-                  'אימות Google OAuth עובד מצוין',
-                  'JWT Tokens נוצרו ונשמרו',
-                  'פרופיל משתמש נשמר ב-Supabase',
-                  'Routes מוגנים עובדים',
-                  'התנתקות עובדת'
-                ].map((item, index) => (
-                  <li key={index} className="flex items-center gap-3">
-                    <svg className="w-6 h-6 text-[var(--color-success)] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-lg">{item}</span>
-                  </li>
-                ))}
-              </ul>
+        {/* System Status Card */}
+        {connectedAccountId ? (
+          <div className="glass-strong border-2 border-[var(--color-success)]/30 rounded-3xl p-10 mb-8 glow-cyan">
+            <div className="flex items-start gap-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--color-success)] to-[var(--color-cyan)] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg animate-pulse">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-3xl font-bold text-white mb-3">✅ מערכת פעילה!</h3>
+                <p className="text-lg text-[var(--color-text-secondary)] mb-6">
+                  Google Ads מחובר והמערכת מוכנה לזיהוי הונאות. הנה מה שפועל:
+                </p>
+                <ul className="space-y-3 text-[var(--color-text-secondary)]">
+                  {[
+                    '✅ חיבור Google Ads פעיל',
+                    '✅ זיהוי הונאות בזמן אמת',
+                    '✅ ניטור רציף 24/7',
+                    '✅ התראות אוטומטיות',
+                    '✅ דוחות חודשיים'
+                  ].map((item, index) => (
+                    <li key={index} className="flex items-center gap-3">
+                      <span className="text-lg">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="glass-strong border-2 border-[var(--color-cyan)]/30 rounded-3xl p-10 mb-8 glow-cyan">
+            <div className="flex items-start gap-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--color-cyan)] to-[var(--color-purple)] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-3xl font-bold text-white mb-3">🎉 אימות הושלם בהצלחה!</h3>
+                <p className="text-lg text-[var(--color-text-secondary)] mb-6">
+                  החשבון שלכם מוכן ומחכה. הנה מה שהשלמנו:
+                </p>
+                <ul className="space-y-3 text-[var(--color-text-secondary)]">
+                  {[
+                    '✅ אימות Google OAuth עובד מצוין',
+                    '✅ JWT Tokens נוצרו ונשמרו',
+                    '✅ פרופיל משתמש נשמר ב-Supabase',
+                    '✅ Routes מוגנים עובדים',
+                    '✅ התנתקות עובדת'
+                  ].map((item, index) => (
+                    <li key={index} className="flex items-center gap-3">
+                      <span className="text-lg">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Connect Google Ads CTA */}
         <div className="mb-12">

@@ -17,8 +17,8 @@ export function NotificationsProvider({ children }) {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   
-  // Subscribe to real-time notifications
-  useRealtimeUser('notifications', user?.id, (payload) => {
+  // Subscribe to real-time notifications (only if user exists)
+  useRealtimeUser('notifications', user?.id || null, (payload) => {
     if (payload.eventType === 'INSERT') {
       const newNotification = payload.new
       

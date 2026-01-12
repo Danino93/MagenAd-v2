@@ -22,8 +22,8 @@ export function useRealtimeDashboard(userId) {
     }
   }, [userId])
   
-  // Real-time updates for detections/anomalies
-  useRealtimeUser('anomalies', userId, (payload) => {
+  // Real-time updates for detections/anomalies (only if userId exists)
+  useRealtimeUser('anomalies', userId || null, (payload) => {
     console.log('🔴 New anomaly:', payload)
     
     if (payload.eventType === 'INSERT') {
@@ -58,8 +58,8 @@ export function useRealtimeDashboard(userId) {
     }
   })
   
-  // Real-time updates for baseline stats
-  useRealtimeUser('baseline_stats', userId, (payload) => {
+  // Real-time updates for baseline stats (only if userId exists)
+  useRealtimeUser('baseline_stats', userId || null, (payload) => {
     console.log('📊 Baseline updated:', payload)
     fetchDashboardData() // Refresh all stats
   })

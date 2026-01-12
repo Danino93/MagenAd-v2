@@ -20,6 +20,10 @@ function ConnectAdsPage() {
     }
     if (successParam) {
       setSuccess('חשבון Google Ads חובר בהצלחה! 🎉');
+      // Redirect to onboarding after 2 seconds
+      setTimeout(() => {
+        navigate('/app/dashboard');
+      }, 2000);
     }
 
     loadAccounts();

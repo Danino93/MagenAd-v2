@@ -36,22 +36,66 @@ export function useRealtimeTable(table, callback, filter = {}) {
  * Subscribe to user's data
  */
 export function useRealtimeUser(table, userId, callback) {
-  if (!userId) {
-    return { isConnected: false }
-  }
+  const [isConnected, setIsConnected] = useState(false)
   
-  return useRealtimeTable(table, callback, { filter: `user_id=eq.${userId}` })
+  useEffect(() => {
+    // Don't subscribe if no userId
+    if (!userId || !table || !callback) {
+      setIsConnected(false)
+      return
+    }
+    
+    // Subscribe to table with user filter
+    const unsubscribe = realtimeManager.subscribe(
+      table, 
+      callback, 
+      { filter: `user_id=eq.${userId}` }
+    )
+    
+    // Subscribe to connection status
+    const unsubscribeStatus = realtimeManager.onConnectionChange(setIsConnected)
+    
+    // Cleanup
+    return () => {
+      unsubscribe()
+      unsubscribeStatus()
+    }
+  }, [table, userId, callback])
+  
+  return { isConnected }
 }
 
 /**
  * Subscribe to specific row
  */
 export function useRealtimeRow(table, id, callback) {
-  if (!id) {
-    return { isConnected: false }
-  }
+  const [isConnected, setIsConnected] = useState(false)
   
-  return useRealtimeTable(table, callback, { filter: `id=eq.${id}` })
+  useEffect(() => {
+    // Don't subscribe if no id
+    if (!id || !table || !callback) {
+      setIsConnected(false)
+      return
+    }
+    
+    // Subscribe to table with id filter
+    const unsubscribe = realtimeManager.subscribe(
+      table, 
+      callback, 
+      { filter: `id=eq.${id}` }
+    )
+    
+    // Subscribe to connection status
+    const unsubscribeStatus = realtimeManager.onConnectionChange(setIsConnected)
+    
+    // Cleanup
+    return () => {
+      unsubscribe()
+      unsubscribeStatus()
+    }
+  }, [table, id, callback])
+  
+  return { isConnected }
 }
 
 /**

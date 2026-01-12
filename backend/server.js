@@ -17,6 +17,7 @@ console.log('🔄 Initializing cron jobs...');
 require('./jobs/ingest-clicks');
 require('./jobs/calculate-baseline');
 require('./jobs/run-detection');
+require('./jobs/generate-monthly-report');
 console.log('✅ All cron jobs initialized');
 
 // Routes
@@ -27,6 +28,7 @@ const detectionRoutes = require('./routes/detection');
 const quietIndexRoutes = require('./routes/quietindex');
 const reportsRoutes = require('./routes/reports');
 const anomaliesRoutes = require('./routes/anomalies');
+const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -115,6 +117,7 @@ app.use('/api/detection', detectionRoutes);
 app.use('/api/qi', quietIndexRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/anomalies', anomaliesRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check endpoint (updated with MonitoringService)
 app.get('/api/health', async (req, res) => {

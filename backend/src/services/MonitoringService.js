@@ -125,7 +125,7 @@ class MonitoringService {
       health.status = 'unhealthy'
     }
     
-    // Check Redis connection
+    // Check Redis connection (optional - don't fail if not connected)
     try {
       const CacheService = require('./CacheService')
       health.cache = CacheService.enabled ? 'connected' : 'disabled'
