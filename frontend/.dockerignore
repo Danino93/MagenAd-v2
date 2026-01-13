@@ -9,9 +9,9 @@ node_modules
 npm-debug.log
 yarn-error.log
 yarn-debug.log
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+# package-lock.json - NEEDED for npm ci (don't ignore!)
+# yarn.lock - NEEDED for yarn install (don't ignore!)
+# pnpm-lock.yaml - NEEDED for pnpm install (don't ignore!)
 
 # ============================================
 # Environment Files

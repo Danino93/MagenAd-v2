@@ -7,8 +7,9 @@ FROM node:18-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (including package-lock.json for npm ci)
+COPY package.json ./
+COPY package-lock.json* ./
 
 # Install dependencies (including devDependencies for build)
 RUN npm ci
@@ -32,8 +33,9 @@ RUN addgroup -g 1001 -S nodejs && \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (including package-lock.json for npm ci)
+COPY package.json ./
+COPY package-lock.json* ./
 
 # Install production dependencies only
 RUN npm ci --only=production && \

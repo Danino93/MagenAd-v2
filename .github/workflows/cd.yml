@@ -225,13 +225,23 @@ jobs:
     if: failure()
     
     steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+      
       - name: Rollback production
+        if: ${{ secrets.PRODUCTION_USER != '' && secrets.PRODUCTION_HOST != '' }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/magenad
             docker-compose down
             docker-compose up -d
           ENDSSH
+      
+      - name: Skip rollback if no SSH configured
+        if: ${{ secrets.PRODUCTION_USER == '' || secrets.PRODUCTION_HOST == '' }}
+        run: echo "⚠️ Skipping rollback - SSH credentials not configured"
       
       - name: Notify team
         uses: 8398a7/action-slack@v3
