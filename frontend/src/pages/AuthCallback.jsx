@@ -7,13 +7,79 @@ function AuthCallbackHebrew() {
 
   useEffect(() => {
     const token = searchParams.get('token');
+    const verified = searchParams.get('verified');
 
     if (token) {
       localStorage.setItem('token', token);
       
-      setTimeout(() => {
-        navigate('/app/dashboard');
-      }, 1500);
+      // אם זה אחרי אימות אימייל, מחק את האימייל הממתין
+      if (verified === 'true') {
+        localStorage.removeItem('pendingVerificationEmail');
+      }
+      
+      // בדוק onboarding status
+      const checkOnboarding = async () => {
+        try {
+          // קבל פרטי משתמש כדי לבדוק אימייל
+          const userResponse = await fetch('http://localhost:3001/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          let shouldSkipOnboarding = false;
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            // דילוג זמני על onboarding לאימייל ספציפי
+            const skipEmails = ['admin_driveril_2024@example.com', 'admin_driveril_2024', 'danino93@gmail.com'];
+            if (userData.user?.email && skipEmails.some(skipEmail => 
+              userData.user.email.includes(skipEmail) || userData.user.email === skipEmail
+            )) {
+              shouldSkipOnboarding = true;
+            }
+          }
+
+          if (shouldSkipOnboarding) {
+            // דלג ישר לדשבורד
+            setTimeout(() => {
+              navigate('/app/dashboard');
+            }, 500);
+            return;
+          }
+
+          const response = await fetch('http://localhost:3001/api/auth/onboarding-status', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            
+            // המתן קצת לפני redirect (למען UX)
+            setTimeout(() => {
+              if (data.isOnboardingComplete) {
+                navigate('/app/dashboard');
+              } else {
+                navigate('/app/onboarding');
+              }
+            }, 1500);
+          } else {
+            // אם יש שגיאה, נסה בכל זאת dashboard
+            setTimeout(() => {
+              navigate('/app/dashboard');
+            }, 1500);
+          }
+        } catch (error) {
+          console.error('Error checking onboarding:', error);
+          // אם יש שגיאה, נסה בכל זאת dashboard
+          setTimeout(() => {
+            navigate('/app/dashboard');
+          }, 1500);
+        }
+      };
+
+      checkOnboarding();
     } else {
       navigate('/login?error=authentication_failed');
     }

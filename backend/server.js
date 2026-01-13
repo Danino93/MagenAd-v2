@@ -29,6 +29,9 @@ const quietIndexRoutes = require('./routes/quietindex');
 const reportsRoutes = require('./routes/reports');
 const anomaliesRoutes = require('./routes/anomalies');
 const dashboardRoutes = require('./routes/dashboard');
+const profilesRoutes = require('./routes/profiles');
+const userRoutes = require('./routes/user');
+const subscriptionRoutes = require('./routes/subscription');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -118,6 +121,9 @@ app.use('/api/qi', quietIndexRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/anomalies', anomaliesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/profiles', profilesRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // Health check endpoint (updated with MonitoringService)
 app.get('/api/health', async (req, res) => {

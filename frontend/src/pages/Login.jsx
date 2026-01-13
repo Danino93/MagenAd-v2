@@ -4,8 +4,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 function LoginHebrew() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showManualForm, setShowManualForm] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = window.location.pathname;
+  const isSignup = location === '/signup';
 
   useEffect(() => {
     const errorParam = searchParams.get('error');
@@ -33,6 +38,76 @@ function LoginHebrew() {
       }
     } catch (err) {
       setError('שגיאה בהתחברות. אנא נסו שוב.');
+      setLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (!email || !password) {
+      setError('אנא מלאו את כל השדות');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // אם נדרש אימות אימייל, הפנה לדף אימות
+        if (data.requiresVerification) {
+          localStorage.setItem('pendingVerificationEmail', data.email || email);
+          navigate('/verify-email', {
+            state: {
+              email: data.email || email,
+              message: data.error
+            }
+          });
+          return;
+        }
+        throw new Error(data.error || 'שגיאה בהתחברות');
+      }
+
+      // שמור token
+      localStorage.setItem('token', data.token);
+
+      // בדוק אם צריך לדלג על onboarding (זמני)
+      const skipEmails = ['admin_driveril_2024@example.com', 'admin_driveril_2024', 'danino93@gmail.com'];
+      const shouldSkip = skipEmails.some(skipEmail => email.includes(skipEmail) || email === skipEmail);
+
+      if (shouldSkip) {
+        // דלג ישר לדשבורד
+        navigate('/app/dashboard');
+        return;
+      }
+
+      // בדוק onboarding status
+      const onboardingResponse = await fetch('http://localhost:3001/api/auth/onboarding-status', {
+        headers: {
+          'Authorization': `Bearer ${data.token}`
+        }
+      });
+
+      const onboardingData = await onboardingResponse.json();
+
+      if (onboardingData.isOnboardingComplete) {
+        navigate('/app/dashboard');
+      } else {
+        navigate('/app/onboarding');
+      }
+    } catch (err) {
+      setError(err.message || 'שגיאה בהתחברות. אנא נסו שוב.');
       setLoading(false);
     }
   };
@@ -81,10 +156,13 @@ function LoginHebrew() {
           {/* Title */}
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-white mb-3">
-              ברוכים השבים
+              {isSignup ? 'התחילו חינם' : 'ברוכים השבים'}
             </h1>
             <p className="text-[var(--color-text-secondary)] text-lg">
-              התחברו לחשבון שלכם כדי להמשיך
+              {isSignup 
+                ? 'צרו חשבון חדש כדי להתחיל להגן על הקמפיינים שלכם'
+                : 'התחברו לחשבון שלכם כדי להמשיך'
+              }
             </p>
           </div>
 
@@ -139,23 +217,105 @@ function LoginHebrew() {
             </div>
           </div>
 
-          {/* Email Login (Coming Soon) */}
-          <button
-            disabled
-            className="w-full flex items-center justify-center gap-3 glass border border-white/10 text-[var(--color-text-tertiary)] font-bold py-5 px-6 rounded-xl cursor-not-allowed"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <span>התחברות עם אימייל (בקרוב)</span>
-          </button>
+          {/* Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-[var(--color-bg-primary)]/50 text-[var(--color-text-tertiary)]">או</span>
+            </div>
+          </div>
 
-          {/* Sign Up Link */}
+          {/* Manual Login Link */}
+          {!showManualForm && (
+            <button
+              onClick={() => setShowManualForm(true)}
+              className="w-full flex items-center justify-center gap-3 glass border border-white/10 hover:border-[var(--color-cyan)] text-white font-bold py-5 px-6 rounded-xl transition-all hover:scale-105"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>התחברו עם אימייל וסיסמא</span>
+            </button>
+          )}
+
+          {/* Email Login Form */}
+          {showManualForm && (
+            <form onSubmit={handleEmailLogin} className="space-y-4 animate-in fade-in slide-in-from-top-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
+                אימייל
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 glass border border-white/10 rounded-xl text-white placeholder-[var(--color-text-tertiary)] focus:border-[var(--color-cyan)] focus:outline-none transition-all"
+                placeholder="הכניסו אימייל"
+                dir="rtl"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
+                סיסמה
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 glass border border-white/10 rounded-xl text-white placeholder-[var(--color-text-tertiary)] focus:border-[var(--color-cyan)] focus:outline-none transition-all"
+                placeholder="הכניסו סיסמה"
+                dir="rtl"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[var(--color-cyan)] via-[var(--color-purple)] to-[var(--color-magenta)] text-white font-bold py-5 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 shadow-lg"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>{isSignup ? 'יוצר חשבון...' : 'מתחבר...'}</span>
+                </div>
+              ) : (
+                isSignup ? 'צרו חשבון' : 'התחברו'
+              )}
+            </button>
+
+            {/* Cancel Button */}
+            <button
+              type="button"
+              onClick={() => setShowManualForm(false)}
+              className="w-full text-center text-[var(--color-text-secondary)] hover:text-white transition-colors text-sm mt-2"
+            >
+              ביטול
+            </button>
+          </form>
+          )}
+
+          {/* Sign Up / Login Link */}
           <p className="text-center text-[var(--color-text-secondary)] mt-8">
-            אין לכם חשבון?{' '}
-            <Link to="/signup" className="text-[var(--color-cyan)] hover:text-[var(--color-purple)] font-bold transition-colors">
-              הירשמו עכשיו
-            </Link>
+            {isSignup ? (
+              <>
+                כבר יש לכם חשבון?{' '}
+                <Link to="/login" className="text-[var(--color-cyan)] hover:text-[var(--color-purple)] font-bold transition-colors">
+                  התחברו כאן
+                </Link>
+              </>
+            ) : (
+              <>
+                אין לכם חשבון?{' '}
+                <Link to="/signup" className="text-[var(--color-cyan)] hover:text-[var(--color-purple)] font-bold transition-colors">
+                  הירשמו עכשיו
+                </Link>
+              </>
+            )}
           </p>
 
           {/* Security Info */}

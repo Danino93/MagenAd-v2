@@ -15,17 +15,20 @@ import {
   Link2,
   Settings,
   BarChart3,
-  Sparkles
+  Sparkles,
+  LogOut
 } from 'lucide-react';
 
 function OnboardingPage({ user, onComplete }) {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [connectedAccountId, setConnectedAccountId] = useState(null);
+  const [selectedProfileType, setSelectedProfileType] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     checkAccountStatus();
+    checkProfileStatus();
     
     // Check every 2 seconds if account was connected (when on connect step)
     const interval = setInterval(() => {
@@ -36,6 +39,31 @@ function OnboardingPage({ user, onComplete }) {
     
     return () => clearInterval(interval);
   }, [currentStep]);
+
+  const checkProfileStatus = async () => {
+    if (!connectedAccountId) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`http://localhost:3001/api/profiles/${connectedAccountId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.profile) {
+          // אם יש profile, דלג על שלב הבחירה
+          if (currentStep === 2) {
+            setCurrentStep(3);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking profile:', error);
+    }
+  };
 
   const checkAccountStatus = async () => {
     try {
@@ -167,21 +195,24 @@ function OnboardingPage({ user, onComplete }) {
               {
                 emoji: '🧘',
                 title: 'רגוע',
-                desc: '8+ קליקים/שעה',
+                profileType: 'easy',
+                desc: 'פחות false positives, רק מקרים ברורים מאוד',
                 color: 'from-green-500 to-emerald-500',
                 recommended: false
               },
               {
                 emoji: '🤨',
                 title: 'מאוזן',
-                desc: '5+ קליקים/שעה',
+                profileType: 'normal',
+                desc: 'איזון מושלם - מומלץ לרוב המשתמשים',
                 color: 'from-yellow-500 to-orange-500',
                 recommended: true
               },
               {
                 emoji: '😤',
                 title: 'אגרסיבי',
-                desc: '3+ קליקים/שעה',
+                profileType: 'aggressive',
+                desc: 'תופס הכי הרבה, יותר התראות',
                 color: 'from-red-500 to-rose-500',
                 recommended: false
               }
@@ -189,17 +220,54 @@ function OnboardingPage({ user, onComplete }) {
               <div
                 key={i}
                 className={`glass rounded-2xl p-6 border-2 ${
-                  level.recommended ? 'border-yellow-500/50' : 'border-white/10'
+                  selectedProfileType === level.profileType 
+                    ? 'border-[var(--color-cyan)] scale-105' 
+                    : level.recommended 
+                      ? 'border-yellow-500/50' 
+                      : 'border-white/10'
                 } hover:scale-105 transition-all cursor-pointer`}
-                onClick={() => {
-                  // TODO: Save detection preset
-                  console.log('Selected:', level.title);
+                onClick={async () => {
+                  setSelectedProfileType(level.profileType);
+                  
+                  // שמור profile ב-DB
+                  if (connectedAccountId) {
+                    try {
+                      const token = localStorage.getItem('token');
+                      if (!token) return;
+
+                      const response = await fetch(`http://localhost:3001/api/profiles/${connectedAccountId}`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          profile_type: level.profileType
+                        })
+                      });
+
+                      if (response.ok) {
+                        console.log('Profile saved:', level.profileType);
+                      } else {
+                        console.error('Failed to save profile');
+                      }
+                    } catch (error) {
+                      console.error('Error saving profile:', error);
+                    }
+                  }
                 }}
               >
                 {level.recommended && (
                   <div className="text-center mb-4">
                     <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm font-bold">
                       ⭐ מומלץ
+                    </span>
+                  </div>
+                )}
+                {selectedProfileType === level.profileType && (
+                  <div className="text-center mb-4">
+                    <span className="px-3 py-1 bg-[var(--color-cyan)]/20 text-[var(--color-cyan)] rounded-full text-sm font-bold">
+                      ✓ נבחר
                     </span>
                   </div>
                 )}
@@ -290,12 +358,54 @@ function OnboardingPage({ user, onComplete }) {
                 <span className="text-xs text-[var(--color-text-tertiary)]">הגדרת חשבון</span>
               </div>
             </div>
-            {user && (
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-white">{user.full_name}</p>
-                <p className="text-xs text-[var(--color-text-tertiary)]">{user.email}</p>
-              </div>
-            )}
+            
+            {/* User Info & Actions */}
+            <div className="flex items-center gap-4">
+              {user && (
+                <div className="flex items-center gap-3">
+                  {/* User Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-cyan)] via-[var(--color-purple)] to-[var(--color-magenta)] flex items-center justify-center border-2 border-white/20">
+                    <span className="text-white font-bold text-sm">
+                      {user.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  
+                  {/* User Info */}
+                  <div className="text-right hidden md:block">
+                    <p className="text-sm font-bold text-white">{user.full_name || 'משתמש'}</p>
+                    <p className="text-xs text-[var(--color-text-tertiary)]">{user.email}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Skip Onboarding Button (זמני) */}
+              <button
+                onClick={() => {
+                  if (window.confirm('האם אתם בטוחים שברצונכם לדלג על ההגדרות הראשוניות? תוכלו לחזור להגדרות מהדשבורד בכל עת.')) {
+                    navigate('/app/dashboard');
+                  }
+                }}
+                className="px-4 py-2 glass hover:glass-strong border border-[var(--color-cyan)]/30 hover:border-[var(--color-cyan)] rounded-xl text-[var(--color-cyan)] text-sm font-medium transition-all hover:scale-105 flex items-center gap-2"
+              >
+                <ArrowRight className="w-4 h-4" />
+                <span className="hidden md:inline">דילוג על הגדרות</span>
+                <span className="md:hidden">דילוג</span>
+              </button>
+              
+              {/* Logout Button */}
+              <button
+                onClick={() => {
+                  if (window.confirm('האם אתם בטוחים שברצונכם להתנתק?')) {
+                    localStorage.removeItem('token');
+                    navigate('/');
+                  }
+                }}
+                className="px-4 py-2 glass hover:glass-strong border border-white/10 rounded-xl text-white text-sm font-medium transition-all hover:scale-105 hover:border-[var(--color-danger)]/50 flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden md:inline">יציאה</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -387,11 +497,15 @@ function OnboardingPage({ user, onComplete }) {
                 if (currentStep === 1 && !connectedAccountId) {
                   // If on connect step and not connected, navigate to connect
                   navigate('/app/connect-ads');
+                } else if (currentStep === 2 && !selectedProfileType) {
+                  // If on profile selection step and nothing selected, show error
+                  alert('אנא בחרו רמת זיהוי לפני המשך');
                 } else {
                   setCurrentStep(currentStep + 1);
                 }
               }}
-              className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl text-white font-bold hover:scale-105 transition-all flex items-center gap-2"
+              disabled={currentStep === 2 && !selectedProfileType}
+              className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl text-white font-bold hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>הבא</span>
               <ArrowLeft className="w-5 h-5" />

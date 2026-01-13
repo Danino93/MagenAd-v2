@@ -74,11 +74,36 @@ const authenticateToken = (req, res, next) => {
 };
 
 /**
+ * Helper: Check if user email is verified
+ */
+const checkEmailVerified = async (userId) => {
+  try {
+    const { data: { users }, error } = await supabase.auth.admin.listUsers();
+    if (error) return false;
+    
+    const authUser = users?.find(u => u.id === userId);
+    return !!authUser?.email_confirmed_at;
+  } catch (error) {
+    console.error('Error checking email verification:', error);
+    return false;
+  }
+};
+
+/**
  * GET /api/googleads/auth
  * Get OAuth URL to connect Google Ads account
  */
-router.get('/auth', authenticateToken, (req, res) => {
+router.get('/auth', authenticateToken, async (req, res) => {
   try {
+    // בדוק אם האימייל מאומת
+    const isVerified = await checkEmailVerified(req.user.id);
+    if (!isVerified) {
+      return res.status(403).json({ 
+        error: 'יש לאמת את כתובת האימייל לפני חיבור Google Ads',
+        requiresVerification: true
+      });
+    }
+
     const authUrl = googleAdsService.getAuthUrl();
     
     // Store user_id in session/state for callback
