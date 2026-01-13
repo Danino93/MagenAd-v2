@@ -134,36 +134,37 @@ ADD COLUMN IF NOT EXISTS company_name TEXT;
 
 ---
 
-#### 4. **Email Service (SMTP) - להתראות ודוחות**
-**סטטוס:** ⚠️ קוד קיים, צריך הגדרה  
-**מה זה?**
-- זה **שונה** מ-Email Verification של Supabase (שכבר עובד!)
-- זה מיועד לשליחת **התראות** ו**דוחות** למשתמשים
+#### 4. **Email Service (SMTP) - כן להוסיף!** ⭐ **עודכן!**
+**סטטוס:** ⚠️ קוד קיים, **מומלץ להוסיף!**  
+**מה המשתמש החליט:**
+> "בשביל נגיד בעתיד חידוש מנוי לשלוח לאימייל זה גם מצריך את אותו API לא?! אז אולי כבר עדיף וזהו"
+
+**צודק לגמרי!** ✅
+
+**האסטרטגיה:**
+- ✅ **WhatsApp פעם בחודש** - דוח חודשי (זה כבר קיים! הכי טוב!)
+- ✅ **Email למיילים עסקיים** - חידוש מנוי, ביטול, שינוי תוכנית (חשוב! לא מציק!)
+- ❌ **Email להתראות** - לא! (מציק!)
 
 **מה יש:**
-- ✅ `AlertService.js` עם `nodemailer` (מוכן לשלוח התראות)
+- ✅ `AlertService.js` עם `nodemailer` (מוכן לשלוח מיילים)
 - ✅ Email templates מוכנים
-- ✅ Integration עם Monthly Reports
+- ✅ WhatsApp Service (מוכן לשלוח דוחות חודשיים)
 
-**מה צריך:**
-- [ ] ספק Email (SendGrid/Mailgun/Gmail SMTP)
-- [ ] API Key / Credentials
-- [ ] הוספה ל-`.env.local`:
-  ```env
-  SMTP_HOST=smtp.sendgrid.net
-  SMTP_PORT=587
-  SMTP_USER=apikey
-  SMTP_PASS=your_api_key
-  EMAIL_FROM=noreply@magenad.com
-  ```
+**מה Email Service יעשה:**
+- ✅ מייל לחידוש מנוי (חשוב! פעם בחודש - לא מציק!)
+- ✅ מייל לביטול מנוי (חשוב!)
+- ✅ מייל לשינוי תוכנית (חשוב!)
+- ✅ מייל welcome (אופציונלי)
+- ❌ **לא** התראות (מציק!)
 
-**למה זה חשוב?**
-- שליחת התראות על הונאות שזוהו
-- שליחת דוחות חודשיים
-- שליחת הודעות welcome/onboarding
+**המלצה:**
+- **כן להוסיף Email Service!** - למיילים עסקיים (חידוש מנוי, ביטול)
+- **לא לשלוח Email על התראות** - זה מציק!
+- **WhatsApp** - דוח חודשי (זה הכי טוב!)
 
 **זמן:** 1 שעה הגדרה  
-**חשיבות:** בינונית (המערכת עובדת גם בלי, אבל זה משפר UX)
+**חשיבות:** בינונית-גבוהה (חשוב למיילים עסקיים!)
 
 ---
 
@@ -296,9 +297,11 @@ ADD COLUMN IF NOT EXISTS company_name TEXT;
 ## 📝 TODO של המשתמש
 
 ### מה שנוסף ל-TODO:
-- [ ] **WhatsApp Integration** - הגדרת WhatsApp Business API (יקח זמן כמו Google Token)
-- [ ] **Email Service (SMTP)** - הגדרת SendGrid/Mailgun לשליחת התראות ודוחות
+- [ ] **WhatsApp Integration** - הגדרת WhatsApp Business API (דוח חודשי - הכי חשוב!)
+- [ ] **Email Service (SMTP)** - ⭐ **כן להוסיף!** (מיילים עסקיים: חידוש מנוי, ביטול, שינוי תוכנית)
 - [ ] **כפתור WhatsApp בהתראות** - הוספת כפתור "שלח התראות ב-WhatsApp" בפרופיל → התראות
+
+**📄 ראה:** `docs/NOTIFICATION_STRATEGY.md` - אסטרטגיית התראות מפורטת
 
 ### מתי לעשות:
 - **עכשיו:** Soft Launch (30 דקות)
